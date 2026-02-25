@@ -6,7 +6,7 @@ import compression from "compression";
 import dotenv from "dotenv";
 import { redisclient, redisConnect } from "./src/configs/redis.js";
 import http from "http";
-import cors from 'cors'
+import cors from "cors";
 
 dotenv.config();
 await redisConnect();
@@ -17,10 +17,14 @@ const proxy = httpProxy.createProxyServer({});
 
 app.set("trust proxy", true);
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  }),
+);
 app.use(compression());
 app.use(rateLimit({ windowMs: 60000, max: 300 }));
-app.use(cors("*"))
+app.use(cors("*"));
 
 proxy.on("error", (err, req, res) => {
   console.error("Proxy error:", err.message);
@@ -113,11 +117,9 @@ server.on("upgrade", async (req, socket, head) => {
       target = "http://minio:9001";
     } else if (["app.deployhub.cloud"].includes(domain)) {
       target = "http://appdeployhub:80";
-    }
-    else if (["api-devload.cloudcoderhub.in"].includes(domain)) {
+    } else if (["api-devload.cloudcoderhub.in"].includes(domain)) {
       target = "http://apidevload:6700";
-    }
-    else {
+    } else {
       const custom = await redisclient.hgetall(`domain:${domain}`);
       if (custom && custom.port) {
         target = `http://${custom.service}:${custom.port}`;
