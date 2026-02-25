@@ -6,7 +6,7 @@ import compression from "compression";
 import dotenv from "dotenv";
 import { redisclient, redisConnect } from "./src/configs/redis.js";
 import http from "http";
-import cors from "cors";
+import { isAllowedOrigin } from "./src/utils/cors.js";
 
 dotenv.config();
 await redisConnect();
@@ -28,7 +28,15 @@ app.use(
 );
 app.use(compression());
 app.use(rateLimit({ windowMs: 60000, max: 300 }));
-app.use(cors("*"));
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (isAllowedOrigin(origin)) return cb(null, origin);
+      return cb(new Error("CORS blocked"));
+    },
+    credentials: true
+  })
+);
 
 proxy.on("error", (err, req, res) => {
   console.error("Proxy error:", err.message);
