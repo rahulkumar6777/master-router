@@ -63,7 +63,7 @@ app.use(async (req, res) => {
     }
     const PLATFORM7 = ["api-devload.cloudcoderhub.in"];
     if (PLATFORM7.includes(domain)) {
-      return proxy.web(req, res, { target: "http://apidevload:5000" });
+      return proxy.web(req, res, { target: "http://apidevload:6700" });
     }
 
     const PLATFORMSUBDOMAIN = ["app.deployhub.cloud"];
