@@ -37,7 +37,7 @@ app.use(async (req, res) => {
 
     if (PLATFORM.includes(domain)) {
       return proxy.web(req, res, {
-        target: "http://deployhub:4000"
+        target: "http://deployhub:80"
       });
     }
 
@@ -45,7 +45,7 @@ app.use(async (req, res) => {
 
     if (PLATFORM2.includes(domain)) {
       return proxy.web(req, res, {
-        target: "http://cloucoderhub:4001"
+        target: "http://cloucoderhub:80"
       });
     }
 
@@ -54,7 +54,7 @@ app.use(async (req, res) => {
 
     if (PLATFORMSUBDOMAIN.includes(domain)) {
       return proxy.web(req, res, {
-        target: "http://appdeployhub:4002"
+        target: "http://appdeployhub:80"
       });
     }
 
