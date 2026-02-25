@@ -50,13 +50,16 @@ function setCorsHeaders(res, origin, requestHeaders) {
   res.setHeader("Access-Control-Max-Age", "86400");
 }
 
-app.options("/*", (req, res) => {
-  setCorsHeaders(
-    res,
-    req.headers.origin,
-    req.headers["access-control-request-headers"],
-  );
-  res.status(204).end();
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    setCorsHeaders(
+      res,
+      req.headers.origin,
+      req.headers["access-control-request-headers"],
+    );
+    return res.status(204).end();
+  }
+  next();
 });
 
 app.use((req, res, next) => {
@@ -73,9 +76,8 @@ proxy.on("proxyRes", (proxyRes, req) => {
   proxyRes.headers["access-control-allow-origin"] = origin || "*";
   proxyRes.headers["vary"] = "Origin";
   proxyRes.headers["access-control-allow-credentials"] = "true";
-  proxyRes.headers[
-    "access-control-allow-methods"
-  ] = "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS";
+  proxyRes.headers["access-control-allow-methods"] =
+    "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS";
   proxyRes.headers["access-control-allow-headers"] =
     req.headers["access-control-request-headers"] ||
     "Content-Type, Authorization, X-Requested-With, Accept, Origin";
@@ -135,9 +137,7 @@ app.use(async (req, res) => {
 
     if (domain.endsWith(".deployhub.online")) {
       const subdomain = domain.split(".")[0];
-      const project = await redisclient.hgetall(
-        `subdomain:${subdomain}`,
-      );
+      const project = await redisclient.hgetall(`subdomain:${subdomain}`);
       if (project && project.port) {
         const target = `http://${project.service}:${project.port}`;
         return proxy.web(req, res, { target });
@@ -159,9 +159,7 @@ server.on("upgrade", async (req, socket, head) => {
 
     if (["deployhub.cloud", "www.deployhub.cloud"].includes(domain)) {
       target = "http://deployhub:80";
-    } else if (
-      ["cloudcoderhub.in", "www.cloudcoderhub.in"].includes(domain)
-    ) {
+    } else if (["cloudcoderhub.in", "www.cloudcoderhub.in"].includes(domain)) {
       target = "http://cloucoderhub:80";
     } else if (["console.cloudcoderhub.in"].includes(domain)) {
       target = "http://minio:9000";
@@ -177,9 +175,7 @@ server.on("upgrade", async (req, socket, head) => {
         target = `http://${custom.service}:${custom.port}`;
       } else if (domain.endsWith(".deployhub.online")) {
         const subdomain = domain.split(".")[0];
-        const project = await redisclient.hgetall(
-          `subdomain:${subdomain}`,
-        );
+        const project = await redisclient.hgetall(`subdomain:${subdomain}`);
         if (project && project.port) {
           target = `http://${project.service}:${project.port}`;
         }
