@@ -6,7 +6,6 @@ import compression from "compression";
 import dotenv from "dotenv";
 import { redisclient, redisConnect } from "./src/configs/redis.js";
 import http from "http";
-import cors from "cors";
 
 dotenv.config();
 await redisConnect();
@@ -27,88 +26,104 @@ app.use(
     },
   }),
 );
+
 app.use(compression());
 app.use(rateLimit({ windowMs: 60000, max: 300 }));
 
-function isAllowedOrigin(origin) {
-  if (!origin) return true;
-
-  try {
-    const url = new URL(origin);
-    const host = url.hostname;
-
-    if (
-      host.endsWith(".deployhub.online") ||
-      host.endsWith(".deployhub.cloud") ||
-      host.endsWith(".cloudcoderhub.in")
-    ) {
-      return true;
-    }
-
-    return false;
-  } catch {
-    return false;
-  }
+function setCorsHeaders(res, origin, requestHeaders) {
+  res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  res.setHeader("Vary", "Origin");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    requestHeaders ||
+      "Content-Type, Authorization, X-Requested-With, Accept, Origin",
+  );
+  res.setHeader(
+    "Access-Control-Expose-Headers",
+    "Content-Length, X-Kuma-Revision",
+  );
+  res.setHeader("Access-Control-Max-Age", "86400");
 }
 
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      if (isAllowedOrigin(origin)) return cb(null, origin);
-      return cb(new Error("CORS blocked"));
-    },
-    credentials: true,
-  }),
-);
+app.options("/*", (req, res) => {
+  setCorsHeaders(
+    res,
+    req.headers.origin,
+    req.headers["access-control-request-headers"],
+  );
+  res.status(204).end();
+});
+
+app.use((req, res, next) => {
+  setCorsHeaders(
+    res,
+    req.headers.origin,
+    req.headers["access-control-request-headers"],
+  );
+  next();
+});
+
+proxy.on("proxyRes", (proxyRes, req) => {
+  const origin = req.headers.origin;
+  proxyRes.headers["access-control-allow-origin"] = origin || "*";
+  proxyRes.headers["vary"] = "Origin";
+  proxyRes.headers["access-control-allow-credentials"] = "true";
+  proxyRes.headers[
+    "access-control-allow-methods"
+  ] = "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS";
+  proxyRes.headers["access-control-allow-headers"] =
+    req.headers["access-control-request-headers"] ||
+    "Content-Type, Authorization, X-Requested-With, Accept, Origin";
+  proxyRes.headers["access-control-expose-headers"] =
+    "Content-Length, X-Kuma-Revision";
+});
 
 proxy.on("error", (err, req, res) => {
-  console.error("Proxy error:", err.message);
   if (res && !res.headersSent) {
     res.writeHead(502, { "Content-Type": "text/plain" });
     res.end("Service unavailable");
   }
 });
 
-// Normal HTTP routing
 app.use(async (req, res) => {
   try {
     const domain = req.headers.host?.toLowerCase();
     if (!domain) return res.status(400).send("Invalid Host");
 
-    const PLATFORM = ["deployhub.cloud", "www.deployhub.cloud"];
-    if (PLATFORM.includes(domain)) {
+    if (["deployhub.cloud", "www.deployhub.cloud"].includes(domain)) {
       return proxy.web(req, res, { target: "http://deployhub:80" });
     }
 
-    const PLATFORM2 = ["cloudcoderhub.in", "www.cloudcoderhub.in"];
-    if (PLATFORM2.includes(domain)) {
+    if (["cloudcoderhub.in", "www.cloudcoderhub.in"].includes(domain)) {
       return proxy.web(req, res, { target: "http://cloucoderhub:80" });
     }
 
-    const PLATFORM3 = ["console.cloudcoderhub.in"];
-    if (PLATFORM3.includes(domain)) {
+    if (["console.cloudcoderhub.in"].includes(domain)) {
       return proxy.web(req, res, { target: "http://minio:9000" });
     }
 
-    const PLATFORM4 = ["storage.cloudcoderhub.in"];
-    if (PLATFORM4.includes(domain)) {
+    if (["storage.cloudcoderhub.in"].includes(domain)) {
       return proxy.web(req, res, { target: "http://minio:9001" });
     }
-    const PLATFORM5 = ["devload.cloudcoderhub.in"];
-    if (PLATFORM5.includes(domain)) {
+
+    if (["devload.cloudcoderhub.in"].includes(domain)) {
       return proxy.web(req, res, { target: "http://devload:80" });
     }
-    const PLATFORM6 = ["app-devload.cloudcoderhub.in"];
-    if (PLATFORM6.includes(domain)) {
+
+    if (["app-devload.cloudcoderhub.in"].includes(domain)) {
       return proxy.web(req, res, { target: "http://appdevload:80" });
     }
-    const PLATFORM7 = ["api-devload.cloudcoderhub.in"];
-    if (PLATFORM7.includes(domain)) {
+
+    if (["api-devload.cloudcoderhub.in"].includes(domain)) {
       return proxy.web(req, res, { target: "http://apidevload:6700" });
     }
 
-    const PLATFORMSUBDOMAIN = ["app.deployhub.cloud"];
-    if (PLATFORMSUBDOMAIN.includes(domain)) {
+    if (["app.deployhub.cloud"].includes(domain)) {
       return proxy.web(req, res, { target: "http://appdeployhub:80" });
     }
 
@@ -120,7 +135,9 @@ app.use(async (req, res) => {
 
     if (domain.endsWith(".deployhub.online")) {
       const subdomain = domain.split(".")[0];
-      const project = await redisclient.hgetall(`subdomain:${subdomain}`);
+      const project = await redisclient.hgetall(
+        `subdomain:${subdomain}`,
+      );
       if (project && project.port) {
         const target = `http://${project.service}:${project.port}`;
         return proxy.web(req, res, { target });
@@ -128,13 +145,11 @@ app.use(async (req, res) => {
     }
 
     return res.status(404).send("Domain not configured");
-  } catch (err) {
-    console.error("Routing error:", err);
+  } catch {
     return res.status(500).send("Internal server error");
   }
 });
 
-// Handle WebSocket upgrade events
 server.on("upgrade", async (req, socket, head) => {
   try {
     const domain = req.headers.host?.toLowerCase();
@@ -144,7 +159,9 @@ server.on("upgrade", async (req, socket, head) => {
 
     if (["deployhub.cloud", "www.deployhub.cloud"].includes(domain)) {
       target = "http://deployhub:80";
-    } else if (["cloudcoderhub.in", "www.cloudcoderhub.in"].includes(domain)) {
+    } else if (
+      ["cloudcoderhub.in", "www.cloudcoderhub.in"].includes(domain)
+    ) {
       target = "http://cloucoderhub:80";
     } else if (["console.cloudcoderhub.in"].includes(domain)) {
       target = "http://minio:9000";
@@ -160,7 +177,9 @@ server.on("upgrade", async (req, socket, head) => {
         target = `http://${custom.service}:${custom.port}`;
       } else if (domain.endsWith(".deployhub.online")) {
         const subdomain = domain.split(".")[0];
-        const project = await redisclient.hgetall(`subdomain:${subdomain}`);
+        const project = await redisclient.hgetall(
+          `subdomain:${subdomain}`,
+        );
         if (project && project.port) {
           target = `http://${project.service}:${project.port}`;
         }
@@ -172,8 +191,7 @@ server.on("upgrade", async (req, socket, head) => {
     } else {
       socket.destroy();
     }
-  } catch (err) {
-    console.error("WebSocket routing error:", err);
+  } catch {
     socket.destroy();
   }
 });
