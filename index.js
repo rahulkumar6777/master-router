@@ -53,7 +53,7 @@ function setCorsHeaders(res, origin, requestHeaders) {
 // Helper function for subdomain extraction
 function getSubdomain(domain, root) {
   if (!domain.endsWith(root)) return null;
-  const withoutRoot = domain.slice(0, -(root.length + 1));
+  const withoutRoot = domain.slice(0, -(root.length + 1)); // remove ".root"
   return withoutRoot || null;
 }
 
@@ -104,45 +104,42 @@ app.use(async (req, res) => {
     const domain = req.headers.host?.toLowerCase();
     if (!domain) return res.status(400).send("Invalid Host");
 
+    // Static mappings
     if (["deployhub.cloud", "www.deployhub.cloud"].includes(domain)) {
       return proxy.web(req, res, { target: "http://deployhub:80" });
     }
-
     if (["cloudcoderhub.in", "www.cloudcoderhub.in"].includes(domain)) {
       return proxy.web(req, res, { target: "http://cloucoderhub:80" });
     }
-
     if (["console.cloudcoderhub.in"].includes(domain)) {
       return proxy.web(req, res, { target: "http://minio:9000" });
     }
-
     if (["storage.cloudcoderhub.in"].includes(domain)) {
       return proxy.web(req, res, { target: "http://minio:9001" });
     }
-
     if (["devload.cloudcoderhub.in"].includes(domain)) {
       return proxy.web(req, res, { target: "http://devload:80" });
     }
-
     if (["app-devload.cloudcoderhub.in"].includes(domain)) {
       return proxy.web(req, res, { target: "http://appdevload:80" });
     }
-
     if (["api-devload.cloudcoderhub.in"].includes(domain)) {
       return proxy.web(req, res, { target: "http://apidevload:6700" });
     }
-
     if (["app.deployhub.cloud"].includes(domain)) {
       return proxy.web(req, res, { target: "http://appdeployhub:80" });
     }
 
+    // Redis lookup for custom domains
     const custom = await redisclient.hgetall(`domain:${domain}`);
     if (custom && custom.port) {
       const target = `http://${custom.service}:${custom.port}`;
       return proxy.web(req, res, { target });
     }
 
+    // Only subdomains of deployhub.online
     const subdomain = getSubdomain(domain, "deployhub.online");
+    console.log(subdomain)
     if (subdomain) {
       const project = await redisclient.hgetall(`subdomain:${subdomain}`);
       if (project && project.port) {
