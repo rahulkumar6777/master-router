@@ -53,6 +53,18 @@ app.use(async (req, res) => {
     if (PLATFORM4.includes(domain)) {
       return proxy.web(req, res, { target: "http://minio:9001" });
     }
+    const PLATFORM5 = ["devload.cloudcoderhub.in"];
+    if (PLATFORM5.includes(domain)) {
+      return proxy.web(req, res, { target: "http://devload:80" });
+    }
+    const PLATFORM6 = ["app-devload.cloudcoderhub.in"];
+    if (PLATFORM6.includes(domain)) {
+      return proxy.web(req, res, { target: "http://appdevload:80" });
+    }
+    const PLATFORM7 = ["api-devload.cloudcoderhub.in"];
+    if (PLATFORM7.includes(domain)) {
+      return proxy.web(req, res, { target: "http://apidevload:5000" });
+    }
 
     const PLATFORMSUBDOMAIN = ["app.deployhub.cloud"];
     if (PLATFORMSUBDOMAIN.includes(domain)) {
