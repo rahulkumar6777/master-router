@@ -18,8 +18,11 @@ const proxy = httpProxy.createProxyServer({});
 app.set("trust proxy", true);
 
 app.use(
-  helmet({
-    contentSecurityPolicy: false,
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      connectSrc: ["'self'", "*"], // wildcard allow
+    },
   }),
 );
 app.use(compression());
