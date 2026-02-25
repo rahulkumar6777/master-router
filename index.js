@@ -6,6 +6,7 @@ import compression from "compression";
 import dotenv from "dotenv";
 import { redisclient, redisConnect } from "./src/configs/redis.js";
 import http from "http";
+import cors from 'cors'
 
 dotenv.config();
 await redisConnect();
@@ -19,6 +20,7 @@ app.set("trust proxy", true);
 app.use(helmet());
 app.use(compression());
 app.use(rateLimit({ windowMs: 60000, max: 300 }));
+app.use(cors("*"))
 
 proxy.on("error", (err, req, res) => {
   console.error("Proxy error:", err.message);
