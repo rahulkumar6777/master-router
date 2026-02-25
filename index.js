@@ -39,12 +39,20 @@ app.use(async (req, res) => {
       });
     }
 
+    const PLATFORM2 = ["cloudcoderhub.in", "www.cloudcoderhub.in"];
+
+    if (PLATFORM2.includes(domain)) {
+      return proxy.web(req, res, {
+        target: "http://cloucoderhub:4001"
+      });
+    }
+
     
     const PLATFORMSUBDOMAIN = ["app.deployhub.cloud"];
 
     if (PLATFORMSUBDOMAIN.includes(domain)) {
       return proxy.web(req, res, {
-        target: "http://appdeployhub:4000"
+        target: "http://appdeployhub:4002"
       });
     }
 
