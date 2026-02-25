@@ -6,7 +6,7 @@ import compression from "compression";
 import dotenv from "dotenv";
 import { redisclient, redisConnect } from "./src/configs/redis.js";
 import http from "http";
-import { isAllowedOrigin } from "./src/utils/cors.js";
+import cors from "cors";
 
 dotenv.config();
 await redisConnect();
@@ -22,20 +22,43 @@ app.use(
     directives: {
       defaultSrc: ["'self'"],
       connectSrc: ["'self'", "*"],
-      imgSrc: ["'self'", "data:", "*"]
+      imgSrc: ["'self'", "data:", "*"],
     },
   }),
 );
 app.use(compression());
 app.use(rateLimit({ windowMs: 60000, max: 300 }));
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+
+  try {
+    const url = new URL(origin);
+    const host = url.hostname;
+
+    // allow same platform domains
+    if (
+      host.endsWith(".deployhub.online") ||
+      host.endsWith(".deployhub.cloud") ||
+      host.endsWith(".cloudcoderhub.in")
+    ) {
+      return true;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 app.use(
   cors({
     origin: (origin, cb) => {
       if (isAllowedOrigin(origin)) return cb(null, origin);
       return cb(new Error("CORS blocked"));
     },
-    credentials: true
-  })
+    credentials: true,
+  }),
 );
 
 proxy.on("error", (err, req, res) => {
