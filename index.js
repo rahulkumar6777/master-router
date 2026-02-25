@@ -21,7 +21,8 @@ app.use(
   helmet.contentSecurityPolicy({
     directives: {
       defaultSrc: ["'self'"],
-      connectSrc: ["'self'", "*"], // wildcard allow
+      connectSrc: ["'self'", "*"],
+      imgSrc: ["'self'", "data:", "*"]
     },
   }),
 );
