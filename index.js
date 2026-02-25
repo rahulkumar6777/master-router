@@ -129,6 +129,10 @@ app.use(async (req, res) => {
     if (["app.deployhub.cloud"].includes(domain)) {
       return proxy.web(req, res, { target: "http://appdeployhub:80" });
     }
+    // this is for test
+    if (["app.deployhub.online"].includes(domain)) {
+      return proxy.web(req, res, { target: "http://appdeployhub:80" });
+    }
 
     // Redis lookup for custom domains
     const custom = await redisclient.hgetall(`domain:${domain}`);
