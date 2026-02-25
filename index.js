@@ -154,7 +154,7 @@ app.use(async (req, res) => {
       }
     }
 
-    return res.status(404).html(`<!DOCTYPE html>
+    return res.status(404).send(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -212,9 +212,12 @@ app.use(async (req, res) => {
       Looks like you followed a broken link or entered a URL that doesn’t exist on <strong>DeployHub</strong>.
     </p>
     <p>
-      If this is your site and you weren’t expecting a 404 for this path, please contact 
-      <a href="#">Rahul “page not found” support guide</a> for troubleshooting tips.
+      If this is your site and you weren’t expecting a 404 for this path, please visit 
+      <a href="#">DeployHub’s “page not found” support guide</a> for troubleshooting tips.
     </p>
+    <div class="footer">
+      DeployHub Internal ID: 01DHUB27E1AV8B3067ABRlWK71YM
+    </div>
   </div>
 </body>
 </html>`);
