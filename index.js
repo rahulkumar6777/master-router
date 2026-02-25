@@ -113,7 +113,11 @@ server.on("upgrade", async (req, socket, head) => {
       target = "http://minio:9001";
     } else if (["app.deployhub.cloud"].includes(domain)) {
       target = "http://appdeployhub:80";
-    } else {
+    }
+    else if (["api-devload.cloudcoderhub.in"].includes(domain)) {
+      target = "http://apidevload:6700";
+    }
+    else {
       const custom = await redisclient.hgetall(`domain:${domain}`);
       if (custom && custom.port) {
         target = `http://${custom.service}:${custom.port}`;
