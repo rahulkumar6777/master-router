@@ -136,7 +136,7 @@ app.use(async (req, res) => {
     }
 
     console.log(domain)
-    if (domain.endsWith(".deployhub.online")) {
+    if (domain.endsWith("deployhub.online")) {
       const subdomain = domain.split(".")[0];
       console.log(subdomain)
       const project = await redisclient.hgetall(`subdomain:${subdomain}`);
