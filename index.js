@@ -154,53 +154,196 @@ app.use(async (req, res) => {
       }
     }
 
-    return res.status(404).send(`<!DOCTYPE html>
+    return res.status(404).send(`
+      <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Site not found - DeployHub</title>
+  <title>Site not found — NestHost</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f9fafb;
-      color: #333;
-      margin: 0;
-      padding: 0;
+      font-family: 'DM Sans', sans-serif;
+      background: #050810;
+      color: #fff;
+      min-height: 100vh;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      height: 100vh;
-    }
-    .container {
-      text-align: center;
-      max-width: 600px;
+      justify-content: center;
       padding: 2rem;
-      background: #fff;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      overflow: hidden;
+      position: relative;
     }
+
+    /* Background glow */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 500px;
+      background: radial-gradient(ellipse, rgba(0,229,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Dot grid */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+    }
+
+    /* Card */
+    .card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 420px;
+      background: rgba(13,17,23,0.95);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 20px;
+      overflow: hidden;
+      text-align: center;
+      animation: fadeUp 0.5s ease both;
+      height: 500px;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Top accent line */
+    .card::before {
+      content: '';
+      display: block;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #00e5ff 50%, transparent);
+    }
+
+    .card-inner {
+      padding: 2.5rem 2rem 2rem;
+    }
+
+    /* 404 badge */
+    .badge-404 {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 900;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #00e5ff;
+      background: rgba(0,229,255,0.08);
+      border: 1px solid rgba(0,229,255,0.15);
+      border-radius: 999px;
+      padding: 5px 14px;
+      margin-bottom: 1.25rem;
+      height: 30px;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #00e5ff;
+      animation: pulse 2s ease infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
     h1 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-      color: #1f2937;
+      font-family: 'Syne', sans-serif;
+      font-weight: 900;
+      font-size: 1.6rem;
+      color: #fff;
+      margin-bottom: 0.75rem;
+      line-height: 1.2;
     }
-    p {
-      margin-bottom: 1rem;
-      line-height: 1.5;
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: #4b5563;
+      line-height: 1.6;
+      margin-bottom: 1.75rem;
+    }
+
+    .domain-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 1.75rem;
+      text-align: left;
+    }
+
+    .domain-icon {
+      color: #374151;
+      flex-shrink: 0;
+    }
+
+    .domain-url {
+      font-size: 12px;
+      color: #374151;
+      word-break: break-all;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Site not found</h1>
-    <p>
-      Looks like you followed a broken link or entered a URL that doesn’t exist.
-    </p>
+
+  <!-- Card -->
+  <div class="card">
+    <div class="card-inner">
+
+      <div class="badge-404">
+        <span class="badge-dot"></span>
+        404 · Not Found
+      </div>
+
+      <h1>Site not configured</h1>
+
+      <p class="subtitle">
+        This domain isn't connected to any project yet,<br>
+        or the deployment is no longer active.
+      </p>
+
+      <!-- Current URL -->
+      <div class="domain-box">
+        <svg class="domain-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+        </svg>
+        <span class="domain-url" id="current-url">—</span>
+      </div>
+
+    </div>
   </div>
+
+  <script>
+    // Show current URL in the box
+    document.getElementById('current-url').textContent = window.location.href
+  </script>
+
 </body>
-</html>`);
+</html>
+      `);
   } catch {
     return res.status(500).send("Internal server error");
   }
