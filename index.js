@@ -141,6 +141,8 @@ app.use(async (req, res) => {
       if (project && project.port) {
         const target = `http://${project.service}:${project.port}`;
         return proxy.web(req, res, { target });
+      } else {
+        return res.status(404).send("Domain not configured");
       }
     }
 
