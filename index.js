@@ -17,6 +17,7 @@ app.use(helmet());
 app.use(compression());
 app.use(rateLimit({ windowMs: 60000, max: 300 }));
 
+app.set("trust proxy", true);
 
 proxy.on("error", (err, req, res) => {
   console.error("Proxy error:", err.message);
@@ -30,7 +31,7 @@ app.use(async (req, res) => {
     const domain = req.headers.host?.toLowerCase();
     if (!domain) return res.status(400).send("Invalid Host");
 
-    
+
     const PLATFORM = ["deployhub.cloud", "www.deployhub.cloud"];
 
     if (PLATFORM.includes(domain)) {
@@ -47,7 +48,7 @@ app.use(async (req, res) => {
       });
     }
 
-    
+
     const PLATFORMSUBDOMAIN = ["app.deployhub.cloud"];
 
     if (PLATFORMSUBDOMAIN.includes(domain)) {
@@ -56,7 +57,7 @@ app.use(async (req, res) => {
       });
     }
 
-    
+
     const custom = await redisclient.hgetall(`domain:${domain}`);
 
     if (custom && custom.port) {
@@ -64,7 +65,7 @@ app.use(async (req, res) => {
       return proxy.web(req, res, { target });
     }
 
-    
+
     if (domain.endsWith(".deployhub.in")) {
       const subdomain = domain.split(".")[0];
 
