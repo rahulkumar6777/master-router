@@ -154,7 +154,70 @@ app.use(async (req, res) => {
       }
     }
 
-    return res.status(404).send("Domain not configured");
+    return res.status(404).html(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site not found - DeployHub</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9fafb;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      text-align: center;
+      max-width: 600px;
+      padding: 2rem;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #1f2937;
+    }
+    p {
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+    a {
+      color: #2563eb;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .footer {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Site not found</h1>
+    <p>
+      Looks like you followed a broken link or entered a URL that doesn’t exist on <strong>DeployHub</strong>.
+    </p>
+    <p>
+      If this is your site and you weren’t expecting a 404 for this path, please contact 
+      <a href="#">Rahul “page not found” support guide</a> for troubleshooting tips.
+    </p>
+  </div>
+</body>
+</html>`);
   } catch {
     return res.status(500).send("Internal server error");
   }
