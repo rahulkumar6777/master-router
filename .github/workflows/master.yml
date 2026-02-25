@@ -52,5 +52,6 @@ jobs:
                 --restart always \
                 -p 127.0.0.1:8080:8080 \
                 --network cloud \
+                --network proxy-net \
                     ${{ secrets.DOCKER_USERNAME }}/masterrouter:latest
 
