@@ -50,6 +50,13 @@ function setCorsHeaders(res, origin, requestHeaders) {
   res.setHeader("Access-Control-Max-Age", "86400");
 }
 
+// Helper function for subdomain extraction
+function getSubdomain(domain, root) {
+  if (!domain.endsWith(root)) return null;
+  const withoutRoot = domain.slice(0, -(root.length + 1));
+  return withoutRoot || null;
+}
+
 app.use((req, res, next) => {
   if (req.method === "OPTIONS") {
     setCorsHeaders(
@@ -135,10 +142,8 @@ app.use(async (req, res) => {
       return proxy.web(req, res, { target });
     }
 
-    console.log(domain)
-    if (domain.endsWith("deployhub.online")) {
-      const subdomain = domain.split(".")[0];
-      console.log(subdomain)
+    const subdomain = getSubdomain(domain, "deployhub.online");
+    if (subdomain) {
       const project = await redisclient.hgetall(`subdomain:${subdomain}`);
       if (project && project.port) {
         const target = `http://${project.service}:${project.port}`;
@@ -177,11 +182,13 @@ server.on("upgrade", async (req, socket, head) => {
       const custom = await redisclient.hgetall(`domain:${domain}`);
       if (custom && custom.port) {
         target = `http://${custom.service}:${custom.port}`;
-      } else if (domain.endsWith(".deployhub.online")) {
-        const subdomain = domain.split(".")[0];
-        const project = await redisclient.hgetall(`subdomain:${subdomain}`);
-        if (project && project.port) {
-          target = `http://${project.service}:${project.port}`;
+      } else {
+        const subdomain = getSubdomain(domain, "deployhub.online");
+        if (subdomain) {
+          const project = await redisclient.hgetall(`subdomain:${subdomain}`);
+          if (project && project.port) {
+            target = `http://${project.service}:${project.port}`;
+          }
         }
       }
     }
