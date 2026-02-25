@@ -12,12 +12,13 @@ await redisConnect();
 const app = express();
 const proxy = httpProxy.createProxyServer({});
 
+app.set("trust proxy", true);
 
 app.use(helmet());
 app.use(compression());
 app.use(rateLimit({ windowMs: 60000, max: 300 }));
 
-app.set("trust proxy", true);
+
 
 proxy.on("error", (err, req, res) => {
   console.error("Proxy error:", err.message);
