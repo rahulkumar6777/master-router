@@ -190,34 +190,14 @@ app.use(async (req, res) => {
       margin-bottom: 1rem;
       line-height: 1.5;
     }
-    a {
-      color: #2563eb;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    .footer {
-      margin-top: 2rem;
-      font-size: 0.9rem;
-      color: #6b7280;
-    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Site not found</h1>
     <p>
-      Looks like you followed a broken link or entered a URL that doesn’t exist on <strong>DeployHub</strong>.
+      Looks like you followed a broken link or entered a URL that doesn’t exist.
     </p>
-    <p>
-      If this is your site and you weren’t expecting a 404 for this path, please visit 
-      <a href="#">DeployHub’s “page not found” support guide</a> for troubleshooting tips.
-    </p>
-    <div class="footer">
-      DeployHub Internal ID: 01DHUB27E1AV8B3067ABRlWK71YM
-    </div>
   </div>
 </body>
 </html>`);
