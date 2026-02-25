@@ -23,6 +23,7 @@ app.use(
       defaultSrc: ["'self'"],
       connectSrc: ["'self'", "*"],
       imgSrc: ["'self'", "data:", "*"],
+      mediaSrc: ["'self'", "data:", "*"],
     },
   }),
 );
@@ -36,7 +37,6 @@ function isAllowedOrigin(origin) {
     const url = new URL(origin);
     const host = url.hostname;
 
-    // allow same platform domains
     if (
       host.endsWith(".deployhub.online") ||
       host.endsWith(".deployhub.cloud") ||
