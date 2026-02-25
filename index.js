@@ -50,6 +50,21 @@ app.use(async (req, res) => {
     }
 
 
+    const PLATFORM3 = ["console.cloudcoderhub.in"];
+
+    if (PLATFORM3.includes(domain)) {
+      return proxy.web(req, res, {
+        target: "http://minio:9000"
+      });
+    }
+    const PLATFORM4 = ["storage.cloudcoderhub.in"];
+
+    if (PLATFORM4.includes(domain)) {
+      return proxy.web(req, res, {
+        target: "http://minio:9001"
+      });
+    }
+
     const PLATFORMSUBDOMAIN = ["app.deployhub.cloud"];
 
     if (PLATFORMSUBDOMAIN.includes(domain)) {
