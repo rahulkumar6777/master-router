@@ -126,7 +126,7 @@ app.use(async (req, res) => {
     if (["api-devload.cloudcoderhub.in"].includes(domain)) {
       return proxy.web(req, res, { target: "http://apidevload:6700" });
     }
-    if (["app.deployhub.cloud"].includes(domain)) {
+    if (["dashboard.deployhub.cloud"].includes(domain)) {
       return proxy.web(req, res, { target: "http://appdeployhub:80" });
     }
     if (["api.deployhub.cloud"].includes(domain)) {
