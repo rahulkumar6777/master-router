@@ -20,10 +20,54 @@ app.use(
   helmet.contentSecurityPolicy({
     directives: {
       defaultSrc: ["'self'"],
-      connectSrc: ["'self'", "*"],
-      imgSrc: ["'self'", "data:", "*"],
-      mediaSrc: ["'self'", "data:", "*"],
-      scriptSrc: ["'self'", "data:", "*"],
+
+      // APIs, WebSockets, etc.
+      connectSrc: ["'self'", "https://api.razorpay.com", "*"],
+
+      // Images (local, data URIs, external CDNs)
+      imgSrc: ["'self'", "data:", "https:", "*"],
+
+      // Media (audio/video)
+      mediaSrc: ["'self'", "data:", "https:"],
+
+      // Scripts (local, inline if needed, external CDNs)
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'", // only if you really need inline scripts
+        "'unsafe-eval'", // only if you use eval-like constructs
+        "https:",
+      ],
+
+      // Styles (local, inline, external CDNs like Google Fonts)
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'", // needed for inline styles
+        "https:",
+      ],
+
+      // Fonts (Google Fonts, etc.)
+      fontSrc: ["'self'", "https:", "data:"],
+
+      // Frames (payment gateways, embeds)
+      frameSrc: [
+        "'self'",
+        "https://api.razorpay.com",
+        "https://*.razorpay.com",
+        "https://www.youtube.com",
+        "https://player.vimeo.com",
+      ],
+
+      // Form submissions
+      formAction: ["'self'", "https://api.razorpay.com"],
+
+      // Prevent plugins/Flash
+      objectSrc: ["'none'"],
+
+      // Restrict <base> tag
+      baseUri: ["'self'"],
+
+      // Optional: block mixed content
+      upgradeInsecureRequests: [],
     },
   }),
 );
@@ -143,7 +187,7 @@ app.use(async (req, res) => {
 
     // Only subdomains of deployhub.online
     const subdomain = getSubdomain(domain, "deployhub.online");
-    console.log(subdomain)
+    console.log(subdomain);
     if (subdomain) {
       const project = await redisclient.hgetall(`subdomain:${subdomain}`);
       if (project && project.port) {
