@@ -78,17 +78,20 @@ app.use(rateLimit({ windowMs: 60000, max: 300 }));
 function setCorsHeaders(res, origin, requestHeaders) {
   res.setHeader("Access-Control-Allow-Origin", origin || "*");
   res.setHeader("Vary", "Origin");
-  res.setHeader("Access-Control-Allow-Credentials", "false");        // 👈
+  res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader(
     "Access-Control-Allow-Methods",
-    "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"
+    "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
   );
   res.setHeader(
     "Access-Control-Allow-Headers",
     requestHeaders ||
-      "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+      "Content-Type, Authorization, X-Requested-With, Accept, Origin",
   );
-  res.setHeader("Access-Control-Expose-Headers", "*");               // 👈
+  res.setHeader(
+    "Access-Control-Expose-Headers",
+    "Content-Length, X-Kuma-Revision",
+  );
   res.setHeader("Access-Control-Max-Age", "86400");
 }
 
@@ -122,16 +125,16 @@ app.use((req, res, next) => {
 
 proxy.on("proxyRes", (proxyRes, req) => {
   const origin = req.headers.origin;
-
   proxyRes.headers["access-control-allow-origin"] = origin || "*";
   proxyRes.headers["vary"] = "Origin";
-  proxyRes.headers["access-control-allow-credentials"] = "false";   // 👈 changed
+  proxyRes.headers["access-control-allow-credentials"] = "true";
   proxyRes.headers["access-control-allow-methods"] =
     "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS";
   proxyRes.headers["access-control-allow-headers"] =
     req.headers["access-control-request-headers"] ||
     "Content-Type, Authorization, X-Requested-With, Accept, Origin";
-  proxyRes.headers["access-control-expose-headers"] = "*";          // 👈 wildcard
+  proxyRes.headers["access-control-expose-headers"] =
+    "Content-Length, X-Kuma-Revision";
 });
 
 proxy.on("error", (err, req, res) => {
