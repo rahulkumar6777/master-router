@@ -23,6 +23,7 @@ app.use(
       connectSrc: ["'self'", "*"],
       imgSrc: ["'self'", "data:", "*"],
       mediaSrc: ["'self'", "data:", "*"],
+      scriptSrc: ["'self'", "data:", "*"],
     },
   }),
 );
