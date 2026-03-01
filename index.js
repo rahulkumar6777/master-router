@@ -121,6 +121,12 @@ app.use(async (req, res) => {
 });
 
 
+proxy.on("proxyReqWs", (proxyReq, req) => {
+  proxyReq.setHeader("X-Forwarded-Proto", req.headers["x-forwarded-proto"] || "https");
+  proxyReq.setHeader("X-Forwarded-Host", req.headers.host);
+  proxyReq.setHeader("Origin", `https://${req.headers.host}`);
+});
+
 server.on("upgrade", async (req, socket, head) => {
   try {
     console.log("WS upgrade request for:", req.headers.host, req.url);
