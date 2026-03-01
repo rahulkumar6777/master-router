@@ -129,19 +129,15 @@ proxy.on("proxyReqWs", (proxyReq, req) => {
 
 server.on("upgrade", async (req, socket, head) => {
   try {
-    console.log("WS upgrade request for:", req.headers.host, req.url);
     const host = req.headers.host?.toLowerCase();
     if (!host) return socket.destroy();
 
     const target = await resolveDomain(host);
-    console.log(target)
     if (!target) return socket.destroy();
 
     proxy.ws(req, socket, head, { 
       target,
       changeOrigin: true,
-      ws: true,
-      secure: false,
     });
   } catch(err) {
     console.error("ws Error" , err)
