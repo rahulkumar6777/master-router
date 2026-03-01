@@ -33,9 +33,9 @@ const wsProxyServer = httpProxy.createProxyServer({
   xfwd: true,
 });
 
-// --- domain resolution helpers (same as before) ---
+// --- domain resolution helpers
 const domainCache = new Map();
-const CACHE_TTL = 30_000;
+const CACHE_TTL = 60_000;
 
 function setCache(key, value) {
   domainCache.set(key, { value, expires: Date.now() + CACHE_TTL });
@@ -118,7 +118,6 @@ app.use(async (req, res) => {
 // --- WebSocket upgrade routing ---
 server.on("upgrade", async (req, socket, head) => {
   try {
-    console.log("Upgrade request:", req.url, req.headers);
 
     const host = req.headers.host?.toLowerCase();
     if (!host) return socket.destroy();
