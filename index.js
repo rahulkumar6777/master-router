@@ -79,19 +79,21 @@ async function resolveDomain(domain) {
     return staticMap[domain];
   }
 
-  const custom = await redisclient.hgetall(`domain:${domain}`);
-  if (custom?.port) {
-    const target = `http://${custom.service}:${custom.port}`;
-    setCache(domain, target);
-    return target;
-  }
+  // const custom = await redisclient.hgetall(`domain:${domain}`);
+  // if (custom?.port) {
+  //   const target = `http://${custom.service}:${custom.port}`;
+  //   setCache(domain, target);
+  //   return target;
+  // }
 
   const subdomain = getSubdomain(domain, "deployhub.online");
   console.log(subdomain)
   if (subdomain) {
     const project = await redisclient.hgetall(`subdomain:${subdomain}`);
+    console.log(project)
     if (project?.port) {
       const target = `http://${subdomain}:${project.port}`;
+      console.log(target)
       setCache(domain, target);
       return target;
     }
