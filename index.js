@@ -123,10 +123,12 @@ app.use(async (req, res) => {
 
 server.on("upgrade", async (req, socket, head) => {
   try {
+    console.log("WS upgrade request for:", req.headers.host, req.url);
     const host = req.headers.host?.toLowerCase();
     if (!host) return socket.destroy();
 
     const target = await resolveDomain(host);
+    console.log(target)
     if (!target) return socket.destroy();
 
     proxy.ws(req, socket, head, { target });
