@@ -143,7 +143,8 @@ server.on("upgrade", async (req, socket, head) => {
       ws: true,
       secure: false,
     });
-  } catch {
+  } catch(err) {
+    console.error("ws Error" , err)
     socket.destroy();
   }
 });
