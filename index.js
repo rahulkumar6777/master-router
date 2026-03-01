@@ -90,7 +90,7 @@ async function resolveDomain(domain) {
   if (subdomain) {
     const project = await redisclient.hgetall(`subdomain:${subdomain}`);
     if (project?.port) {
-      const target = `http://${project.service}:${project.port}`;
+      const target = `http://${subdomain}:${project.port}`;
       setCache(domain, target);
       return target;
     }
