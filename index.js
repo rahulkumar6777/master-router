@@ -14,31 +14,32 @@ const server = http.createServer(app);
 app.set("trust proxy", true);
 app.use(compression());
 
-
-const agent = new http.Agent({
+//  HTTP proxy with agent
+const httpAgent = new http.Agent({
   keepAlive: true,
   maxSockets: 1000,
 });
 
+const httpProxyServer = httpProxy.createProxyServer({
+  changeOrigin: true,
+  xfwd: true,
+  agent: httpAgent,
+});
 
-const proxy = httpProxy.createProxyServer({
+//  WS proxy without agent
+const wsProxyServer = httpProxy.createProxyServer({
   changeOrigin: true,
   ws: true,
   xfwd: true,
-  agent,
 });
 
-
+// --- domain resolution helpers (same as before) ---
 const domainCache = new Map();
 const CACHE_TTL = 30_000;
 
 function setCache(key, value) {
-  domainCache.set(key, {
-    value,
-    expires: Date.now() + CACHE_TTL,
-  });
+  domainCache.set(key, { value, expires: Date.now() + CACHE_TTL });
 }
-
 function getCache(key) {
   const entry = domainCache.get(key);
   if (!entry) return null;
@@ -48,7 +49,6 @@ function getCache(key) {
   }
   return entry.value;
 }
-
 
 const staticMap = {
   "deployhub.cloud": "http://deployhub:80",
@@ -64,25 +64,21 @@ const staticMap = {
   "api.deployhub.cloud": "http://apideployhub:5000",
 };
 
-
 function getSubdomain(domain, root) {
   if (!domain.endsWith(root)) return null;
   const withoutRoot = domain.slice(0, -(root.length + 1));
   return withoutRoot || null;
 }
 
-
 async function resolveDomain(domain) {
   const cached = getCache(domain);
   if (cached) return cached;
 
-  // Static domains
   if (staticMap[domain]) {
     setCache(domain, staticMap[domain]);
     return staticMap[domain];
   }
 
-  // Custom domains
   const custom = await redisclient.hgetall(`domain:${domain}`);
   if (custom?.port) {
     const target = `http://${custom.service}:${custom.port}`;
@@ -90,7 +86,6 @@ async function resolveDomain(domain) {
     return target;
   }
 
-  // Subdomains
   const subdomain = getSubdomain(domain, "deployhub.online");
   if (subdomain) {
     const project = await redisclient.hgetall(`subdomain:${subdomain}`);
@@ -104,7 +99,7 @@ async function resolveDomain(domain) {
   return null;
 }
 
-
+// --- HTTP routing ---
 app.use(async (req, res) => {
   try {
     const host = req.headers.host?.toLowerCase();
@@ -113,47 +108,43 @@ app.use(async (req, res) => {
     const target = await resolveDomain(host);
     if (!target) return res.status(404).send("Domain not configured");
 
-    proxy.web(req, res, { target });
+    httpProxyServer.web(req, res, { target });
   } catch (err) {
     console.error("Router error:", err);
     res.status(500).send("Internal server error");
   }
 });
 
-
-proxy.on("proxyReqWs", (proxyReq, req) => {
-  proxyReq.setHeader("X-Forwarded-Proto", req.headers["x-forwarded-proto"] || "https");
-  proxyReq.setHeader("X-Forwarded-Host", req.headers.host);
-  proxyReq.setHeader("Origin", `https://${req.headers.host}`);
-});
-
+// --- WebSocket upgrade routing ---
 server.on("upgrade", async (req, socket, head) => {
   try {
-    console.log(req.headers)
+    console.log("Upgrade request:", req.url, req.headers);
+
     const host = req.headers.host?.toLowerCase();
     if (!host) return socket.destroy();
 
     const target = await resolveDomain(host);
     if (!target) return socket.destroy();
 
-    proxy.ws(req, socket, head, { 
-      target,
-      changeOrigin: true,
-    });
-  } catch(err) {
-    console.error("ws Error" , err)
+    wsProxyServer.ws(req, socket, head, { target, changeOrigin: true });
+  } catch (err) {
+    console.error("WS Error:", err);
     socket.destroy();
   }
 });
 
-
-proxy.on("error", (err, req, res) => {
-  console.error("Proxy error:", err.message);
-
+// --- Error handling ---
+httpProxyServer.on("error", (err, req, res) => {
+  console.error("HTTP Proxy error:", err.message);
   if (res && !res.headersSent) {
     res.writeHead(502, { "Content-Type": "text/plain" });
     res.end("Service unavailable");
   }
+});
+
+wsProxyServer.on("error", (err, req, socket) => {
+  console.error("WS Proxy error:", err.message);
+  if (socket) socket.destroy();
 });
 
 server.listen(8080, () => {
