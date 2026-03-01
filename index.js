@@ -87,6 +87,7 @@ async function resolveDomain(domain) {
   }
 
   const subdomain = getSubdomain(domain, "deployhub.online");
+  console.log(subdomain)
   if (subdomain) {
     const project = await redisclient.hgetall(`subdomain:${subdomain}`);
     if (project?.port) {
