@@ -126,7 +126,7 @@ server.on("upgrade", async (req, socket, head) => {
     const target = await resolveDomain(host);
     if (!target) return socket.destroy();
 
-    wsProxyServer.ws(req, socket, head, { target, changeOrigin: true });
+    wsProxyServer.ws(req, socket, head, { target, changeOrigin: false });
   } catch (err) {
     console.error("WS Error:", err);
     socket.destroy();
