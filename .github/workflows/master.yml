@@ -53,5 +53,6 @@ jobs:
                 -p 127.0.0.1:8080:8080 \
                 --network cloud \
                 --network proxy-net \
+                --network users \
                     ${{ secrets.DOCKER_USERNAME }}/masterrouter:latest
 
