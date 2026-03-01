@@ -129,6 +129,7 @@ proxy.on("proxyReqWs", (proxyReq, req) => {
 
 server.on("upgrade", async (req, socket, head) => {
   try {
+    console.log(req.headers)
     const host = req.headers.host?.toLowerCase();
     if (!host) return socket.destroy();
 
