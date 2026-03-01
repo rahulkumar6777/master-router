@@ -3,6 +3,7 @@ import http from "http";
 import httpProxy from "http-proxy";
 import compression from "compression";
 import dotenv from "dotenv";
+import { Queue } from "bullmq";
 import { redisclient, redisConnect } from "./src/configs/redis.js";
 
 dotenv.config();
@@ -14,26 +15,20 @@ const server = http.createServer(app);
 app.set("trust proxy", true);
 app.use(compression());
 
-//  HTTP proxy with agent
-const httpAgent = new http.Agent({
-  keepAlive: true,
-  maxSockets: 1000,
-});
+
+const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 1000 });
+
 
 const httpProxyServer = httpProxy.createProxyServer({
-  changeOrigin: true,
-  xfwd: true,
-  agent: httpAgent,
+  changeOrigin: true, xfwd: true, agent: httpAgent,
 });
 
-//  WS proxy without agent
+
 const wsProxyServer = httpProxy.createProxyServer({
-  changeOrigin: true,
-  ws: true,
-  xfwd: true,
+  changeOrigin: true, ws: true, xfwd: true,
 });
 
-// --- domain resolution helpers
+
 const domainCache = new Map();
 const CACHE_TTL = 60_000;
 
@@ -43,25 +38,22 @@ function setCache(key, value) {
 function getCache(key) {
   const entry = domainCache.get(key);
   if (!entry) return null;
-  if (Date.now() > entry.expires) {
-    domainCache.delete(key);
-    return null;
-  }
+  if (Date.now() > entry.expires) { domainCache.delete(key); return null; }
   return entry.value;
 }
 
 const staticMap = {
-  "deployhub.cloud": "http://deployhub:80",
-  "www.deployhub.cloud": "http://deployhub:80",
-  "cloudcoderhub.in": "http://cloucoderhub:80",
-  "www.cloudcoderhub.in": "http://cloucoderhub:80",
-  "console.cloudcoderhub.in": "http://minio:9000",
-  "storage.cloudcoderhub.in": "http://minio:9001",
-  "devload.cloudcoderhub.in": "http://devload:80",
+  "deployhub.cloud":              "http://deployhub:80",
+  "www.deployhub.cloud":          "http://deployhub:80",
+  "cloudcoderhub.in":             "http://cloucoderhub:80",
+  "www.cloudcoderhub.in":         "http://cloucoderhub:80",
+  "console.cloudcoderhub.in":     "http://minio:9000",
+  "storage.cloudcoderhub.in":     "http://minio:9001",
+  "devload.cloudcoderhub.in":     "http://devload:80",
   "app-devload.cloudcoderhub.in": "http://appdevload:80",
   "api-devload.cloudcoderhub.in": "http://apidevload:6700",
-  "dashboard.deployhub.cloud": "http://appdeployhub:80",
-  "api.deployhub.cloud": "http://apideployhub:5000",
+  "dashboard.deployhub.cloud":    "http://appdeployhub:80",
+  "api.deployhub.cloud":          "http://apideployhub:5000",
 };
 
 function getSubdomain(domain, root) {
@@ -75,67 +67,101 @@ async function resolveDomain(domain) {
   if (cached) return cached;
 
   if (staticMap[domain]) {
-    setCache(domain, staticMap[domain]);
-    return staticMap[domain];
+    const resolved = { target: staticMap[domain], projectId: null };
+    setCache(domain, resolved);
+    return resolved;
   }
 
-  // const custom = await redisclient.hgetall(`domain:${domain}`);
-  // if (custom?.port) {
-  //   const target = `http://${custom.service}:${custom.port}`;
-  //   setCache(domain, target);
-  //   return target;
-  // }
-
   const subdomain = getSubdomain(domain, "deployhub.online");
-  console.log(subdomain)
   if (subdomain) {
     const project = await redisclient.hgetall(`subdomain:${subdomain}`);
-    console.log(project)
     if (project?.port) {
-      const target = `http://${subdomain}:${project.port}`;
-      console.log(target)
-      setCache(domain, target);
-      return target;
+      const resolved = {
+        target:    `http://${subdomain}:${project.port}`,
+        projectId: project.projectId || null,
+      };
+      setCache(domain, resolved);
+      return resolved;
     }
   }
 
   return null;
 }
 
-// --- HTTP routing ---
+
+const requestCounts = new Map();
+
+function trackRequest(projectId) {
+  if (!projectId) return;
+  requestCounts.set(projectId, (requestCounts.get(projectId) || 0) + 1);
+}
+
+
+const flushQueue = new Queue("request-count-flush", {
+  connection: {
+    host:     "redis",
+    port:     6379,
+  },
+});
+
+
+setInterval(async () => {
+  if (requestCounts.size === 0) return;
+  const counts = Object.fromEntries(requestCounts);
+  requestCounts.clear();
+
+  try {
+    await flushQueue.add(
+      "flush",
+      { counts, flushedAt: new Date().toISOString() },
+      { attempts: 3, backoff: { type: "exponential", delay: 5000 } }
+    );
+    console.log(`[Counter] Queued flush — ${Object.keys(counts).length} projects, ${Object.values(counts).reduce((a, b) => a + b, 0)} total requests`);
+  } catch (err) {
+    console.error("[Counter] Queue enqueue failed, restoring counts:", err.message);
+    for (const [projectId, count] of Object.entries(counts)) {
+      requestCounts.set(projectId, (requestCounts.get(projectId) || 0) + count);
+    }
+  }
+}, 5 * 60 * 1000);
+
+// ── HTTP routing ─────────────────────────────────────────
 app.use(async (req, res) => {
   try {
     const host = req.headers.host?.toLowerCase();
     if (!host) return res.status(400).send("Invalid host");
 
-    const target = await resolveDomain(host);
-    if (!target) return res.status(404).send("Domain not configured");
+    const resolved = await resolveDomain(host);
+    if (!resolved) return res.status(404).send("Domain not configured");
 
-    httpProxyServer.web(req, res, { target });
+    trackRequest(resolved.projectId);
+
+    httpProxyServer.web(req, res, { target: resolved.target });
   } catch (err) {
     console.error("Router error:", err);
     res.status(500).send("Internal server error");
   }
 });
 
-// --- WebSocket upgrade routing ---
+// ── WebSocket routing ────────────────────────────────────
 server.on("upgrade", async (req, socket, head) => {
   try {
-
     const host = req.headers.host?.toLowerCase();
     if (!host) return socket.destroy();
 
-    const target = await resolveDomain(host);
-    if (!target) return socket.destroy();
+    const resolved = await resolveDomain(host);
+    if (!resolved) return socket.destroy();
 
-    wsProxyServer.ws(req, socket, head, { target, changeOrigin: false });
+    trackRequest(resolved.projectId);
+
+    wsProxyServer.ws(req, socket, head, { target: resolved.target, changeOrigin: false });
   } catch (err) {
     console.error("WS Error:", err);
     socket.destroy();
   }
 });
 
-// --- Error handling ---
+// ── Proxy errors ─────────────────────────────────────────
 httpProxyServer.on("error", (err, req, res) => {
   console.error("HTTP Proxy error:", err.message);
   if (res && !res.headersSent) {
@@ -143,11 +169,29 @@ httpProxyServer.on("error", (err, req, res) => {
     res.end("Service unavailable");
   }
 });
-
 wsProxyServer.on("error", (err, req, socket) => {
   console.error("WS Proxy error:", err.message);
   if (socket) socket.destroy();
 });
+
+// ── Graceful shutdown — flush before exit ────────────────
+async function shutdown() {
+  if (requestCounts.size > 0) {
+    const counts = Object.fromEntries(requestCounts);
+    requestCounts.clear();
+    try {
+      await flushQueue.add("flush", { counts, flushedAt: new Date().toISOString() });
+      console.log("[Counter] Shutdown flush queued");
+    } catch (err) {
+      console.error("[Counter] Shutdown flush failed:", err.message);
+    }
+  }
+  await flushQueue.close();
+  process.exit(0);
+}
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT",  shutdown);
 
 server.listen(8080, () => {
   console.log("Production Router running on port 8080");
