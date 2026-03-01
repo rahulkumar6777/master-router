@@ -131,7 +131,14 @@ server.on("upgrade", async (req, socket, head) => {
     console.log(target)
     if (!target) return socket.destroy();
 
-    proxy.ws(req, socket, head, { target });
+    proxy.ws(req, socket, head, { 
+      target,
+      changeOrigin: true,
+      headers: {
+        Connection: "Upgrade",
+        Upgrade: "websocket",
+      },
+    });
   } catch {
     socket.destroy();
   }
